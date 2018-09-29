@@ -6,8 +6,8 @@ import (
 	"github.com/dirkjabl/bricker/net/packet"
 )
 
-// SwitchSocketA creates a subscriber to set the state to the receiver with the
-// house code on socket a remotes.
+// GetSwitchingState creates a subscriber to get the state of the remote switch
+// bricklet.
 func GetSwitchingState(id string, uid uint32, handler func(device.Resulter, error)) *device.Device {
 	return device.Generator{
 		Id:         device.FallbackId(id, "GetSwitchingState"),
@@ -18,7 +18,7 @@ func GetSwitchingState(id string, uid uint32, handler func(device.Resulter, erro
 		WithPacket: true}.CreateDevice()
 }
 
-// SwitchSocketAFuture is a future pattern version for a synchronized call of the subscriber.
+// GetSwitchingStateFuture is a future pattern version for a synchronized call of the subscriber.
 // If an error occur, the result is false.
 func GetSwitchingStateFuture(brick *bricker.Bricker, connectorname string, uid uint32) bool {
 	future := make(chan bool)
