@@ -1,3 +1,4 @@
+// Collection of subscriber for the Remote SwitchBricklet
 package remoteswitch
 
 import (

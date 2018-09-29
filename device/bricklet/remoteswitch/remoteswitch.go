@@ -1,5 +1,7 @@
+// Collection of subscriber for the Remote SwitchBricklet
 package remoteswitch
 
+// Function and callback identifier
 const (
 	function_get_switching_state = uint8(2) // working
 	function_set_repeats         = uint8(4) // working
