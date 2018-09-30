@@ -61,7 +61,7 @@ func (b *Bricker) Done() {
 		}
 	}
 	// Release all connections.
-	for name, _ := range b.connection {
+	for name := range b.connection {
 		b.Release(name)
 	}
 }

@@ -15,13 +15,12 @@ func SwitchSocketA(id string, uid uint32, d *SwitchA, handler func(device.Result
 		Uid:        uid,
 		Data:       d,
 		Handler:    handler,
-		WithPacket: true}.CreateDevice()
+		WithPacket: true}.CreateDeviceWithoutExpected()
 }
 
 // SwitchSocketAFuture is a future pattern version for a synchronized call of the subscriber.
 // If an error occur, the result is false.
 func SwitchSocketAFuture(brick *bricker.Bricker, connectorname string, houseCode, receiverCode, switchTo uint8, uid uint32) bool {
-	future := make(chan bool)
 	sub := SwitchSocketA("switchsocket_a"+device.GenId(), uid,
 		&SwitchA{
 			HouseCode:    houseCode,
@@ -29,15 +28,12 @@ func SwitchSocketAFuture(brick *bricker.Bricker, connectorname string, houseCode
 			SwitchTo:     switchTo,
 		},
 		func(r device.Resulter, err error) {
-			future <- device.IsEmptyResultOk(r, err)
 		})
 	err := brick.Subscribe(sub, connectorname)
 	if err != nil {
 		return false
 	}
-	b := <-future
-	close(future)
-	return b
+	return true
 }
 
 type SwitchA struct {

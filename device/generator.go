@@ -54,6 +54,24 @@ func (g Generator) CreateDevice() *Device {
 	return NewSubscriptionResulterHandler(id, sub, r, g.Handler)
 }
 
+func (g Generator) CreateDeviceWithoutExpected() *Device {
+	id := FallbackId(g.Id, "Device")
+	var r Resulter = g.Result
+	var p *packet.Packet = nil
+	if g.WithPacket {
+		if g.Data == nil {
+			p = packet.NewSimpleHeaderOnly(g.Uid, g.Fid, false)
+		} else {
+			p = packet.NewSimpleHeaderPayload(g.Uid, g.Fid, false, g.Data)
+		}
+	}
+	if g.Result == nil {
+		r = &EmptyResult{}
+	}
+	sub := subscription.New(hash.ChoosenFunctionIDUid, g.Uid, g.Fid, p, g.IsCallback)
+	return NewSubscriptionResulterHandler(id, sub, r, g.Handler)
+}
+
 // String fullfill the stringer interface.
 func (g Generator) String() string {
 	txt := "Generator ["
