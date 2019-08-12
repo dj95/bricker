@@ -7,6 +7,9 @@
 package buffered
 
 import (
+	"io"
+	"time"
+
 	"github.com/dirkjabl/bricker/connector"
 	"github.com/dirkjabl/bricker/event"
 	"github.com/dirkjabl/bricker/net"
@@ -31,14 +34,20 @@ type ConnectorBuffered struct {
 // The function takes to integers for the size of the input and output buffer (channels).
 func New(addr string, inbuf, outbuf int) (*ConnectorBuffered, error) {
 	conn, err := net.Dial(addr)
+
 	if err != nil {
 		return nil, err
 	}
-	cb := &ConnectorBuffered{conn: conn,
+
+	conn.Conn.SetKeepAlive(true)
+
+	cb := &ConnectorBuffered{
+		conn: conn,
 		seq:  new(connector.Sequence),
 		In:   make(chan *event.Event, inbuf),
 		Out:  make(chan *event.Event, outbuf),
-		Quit: make(chan struct{})}
+		Quit: make(chan struct{}),
+	}
 
 	go func() { cb.read() }()
 	go func() { cb.write() }()
@@ -75,15 +84,26 @@ func (cb *ConnectorBuffered) Done() {
 
 // read is a internal method. Method reads from the hardware connection and put the packet into the event.
 func (cb *ConnectorBuffered) read() {
+	defer close(cb.In)
+
 	var err error
 	var pck *packet.Packet
+
 	done := false
-	defer close(cb.In)
+
 	for {
 		if done {
 			return
 		}
+
+		cb.conn.Conn.SetReadDeadline(time.Now().Add(2 * time.Second))
 		pck, err = cb.conn.ReadPacket()
+
+		if err == io.EOF {
+			cb.conn.Dial()
+			time.Sleep(2 * time.Second)
+		}
+
 		go func(e error, p *packet.Packet) {
 			if !done {
 				ev := event.NewSimple(e, p)
@@ -100,14 +120,23 @@ func (cb *ConnectorBuffered) read() {
 // write is a internal method. Method writes packets to the hardware connection.
 func (cb *ConnectorBuffered) write() {
 	defer close(cb.Out)
+
 	var ev *event.Event
+
 	for {
 		select {
 		case ev = <-cb.Out:
 			if ev != nil && ev.Err == nil && ev.Packet != nil {
 				ev.Packet.Head.SetSequence(cb.seq.GetSequence())
 				ev.Packet.Head.Length = ev.Packet.ComputeLength()
-				cb.conn.WritePacket(ev.Packet)
+
+				cb.conn.Conn.SetWriteDeadline(time.Now().Add(2 * time.Second))
+				err := cb.conn.WritePacket(ev.Packet)
+
+				if err == io.EOF {
+					cb.conn.Dial()
+					time.Sleep(2 * time.Second)
+				}
 			}
 		case <-cb.Quit:
 			return
